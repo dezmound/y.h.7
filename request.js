@@ -10,8 +10,8 @@ class Request {
     }
     /**
      * Совершает асинхронный запрос к ресурсу.
-     * @param {string} url
-     * @param {Object} [options]
+     * @param {string|RequestInfo} url
+     * @param {Object|RequestInit} [options]
      * @param {Request} [self]
      * @return {Request}
      */
@@ -25,11 +25,11 @@ class Request {
                             data,
                         ]);
                     })
-        );
+            );
             return self;
         }
         return new this(
-            (resolve, reject) => fetch(url, options)
+            (resolve) => fetch(url, options)
                 .then((response) => {
                     resolve([response, []]);
                 })
@@ -50,12 +50,21 @@ class Request {
      * @return {Request}
      */
     then(...args) {
-        this._state = this._state.then(...args);
+        this._state = this._state.then((data) => {
+            /* Если повторно вызвали .then().then() */
+            return Promise.all(
+                data && data.length === 2 ?
+                data :
+                [
+                    new Response(),
+                    data,
+                ]
+        );
+        }).then(...args);
         return this;
     }
     /**
      * Обрабатывает ошибки, при запросе к ресурсу.
-     * Вызывается если в ответе статус > 400.
      * catch([response, data])
      * @return {Request}
      */
